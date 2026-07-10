@@ -1,0 +1,83 @@
+{% extends "app_shell.html" %}
+{% block title %}Analytics — SentimentPro{% endblock %}
+{% block page_title %}Analytics{% endblock %}
+{% block breadcrumb %}Your sentiment breakdown & trends{% endblock %}
+
+{% block content %}
+<div class="ph">
+  <h1>Analytics Dashboard</h1>
+  <p>Visualised breakdowns of your sentiment analysis history</p>
+</div>
+
+<!-- Stats row -->
+<div class="stats mb-3">
+  <div class="stat-card">
+    <div class="stat-ic ic-total">📊</div>
+    <div><div class="stat-val">{{ total }}</div><div class="stat-lbl">Total</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-ic ic-pos">😊</div>
+    <div><div class="stat-val" style="color:var(--green)">{{ counts.positive }}</div><div class="stat-lbl">Positive</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-ic ic-neg">😞</div>
+    <div><div class="stat-val" style="color:var(--red)">{{ counts.negative }}</div><div class="stat-lbl">Negative</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-ic ic-neu">😐</div>
+    <div><div class="stat-val" style="color:var(--amber)">{{ counts.neutral }}</div><div class="stat-lbl">Neutral</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-ic ic-mix">🔀</div>
+    <div><div class="stat-val" style="color:var(--violet)">{{ counts.mixed }}</div><div class="stat-lbl">Mixed</div></div>
+  </div>
+</div>
+
+<!-- Charts row 1 -->
+<div class="charts-grid mb-2">
+  <div class="chart-box">
+    <div class="chart-title">🍩 Sentiment Distribution</div>
+    <div style="position:relative;height:240px"><canvas id="pieChart"></canvas></div>
+  </div>
+  <div class="chart-box">
+    <div class="chart-title">📊 Sentiment Counts</div>
+    <div style="position:relative;height:240px"><canvas id="barChart"></canvas></div>
+  </div>
+</div>
+
+<!-- Trend chart -->
+<div class="chart-box mb-2">
+  <div class="chart-title">📈 14-Day Review Trend</div>
+  <div style="position:relative;height:200px"><canvas id="lineChart"></canvas></div>
+</div>
+
+<!-- Word clouds -->
+<div class="g2 mb-2">
+  <div class="card">
+    <div class="card-head"><span>☁️</span><span class="card-title">Positive Keywords</span></div>
+    <div class="wc-box" id="wc-pos"></div>
+  </div>
+  <div class="card">
+    <div class="card-head"><span>☁️</span><span class="card-title">Negative Keywords</span></div>
+    <div class="wc-box" id="wc-neg"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const counts = {{ counts|tojson }};
+const trend  = {{ trend|safe }};
+const labels = ['Positive','Negative','Neutral','Mixed'];
+const values = [counts.positive,counts.negative,counts.neutral,counts.mixed];
+const tdates = trend.map(t=>t.date.slice(5));
+const tcounts= trend.map(t=>t.count);
+
+makePieChart('pieChart', labels, values);
+makeBarChart('barChart', labels, values);
+makeLineChart('lineChart', tdates, tcounts);
+
+loadWordCloud('wc-pos','positive');
+loadWordCloud('wc-neg','negative');
+</script>
+{% endblock %}

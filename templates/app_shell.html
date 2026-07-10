@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="shell">
+
+  <!-- ── Sidebar ─────────────────────────────────────────── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-brand">
+      <div class="b-icon">🧠</div>
+      <div>
+        <div class="b-name">SentimentPro</div>
+        <div class="b-tag">MCA Final Year Project</div>
+      </div>
+    </div>
+
+    <nav class="sb-nav">
+      {% if session.get('is_admin') %}
+        <div class="nav-sec-lbl">Admin</div>
+        <a href="{{ url_for('admin.dashboard') }}" class="nav-link {% if request.endpoint=='admin.dashboard' %}active{% endif %}">
+          <span class="ni">📊</span> Dashboard
+        </a>
+        <a href="{{ url_for('admin.users') }}" class="nav-link {% if request.endpoint=='admin.users' %}active{% endif %}">
+          <span class="ni">👥</span> Manage Users
+        </a>
+        <a href="{{ url_for('admin.reviews') }}" class="nav-link {% if request.endpoint=='admin.reviews' %}active{% endif %}">
+          <span class="ni">📋</span> All Reviews
+        </a>
+      {% else %}
+        <div class="nav-sec-lbl">Main</div>
+        <a href="{{ url_for('user.dashboard') }}" class="nav-link {% if request.endpoint=='user.dashboard' %}active{% endif %}">
+          <span class="ni">🏠</span> Dashboard
+        </a>
+        <div class="nav-sec-lbl">Analysis</div>
+        <a href="{{ url_for('user.history') }}" class="nav-link {% if request.endpoint=='user.history' %}active{% endif %}">
+          <span class="ni">📜</span> History
+        </a>
+        <a href="{{ url_for('user.analytics') }}" class="nav-link {% if request.endpoint=='user.analytics' %}active{% endif %}">
+          <span class="ni">📈</span> Analytics
+        </a>
+        <div class="nav-sec-lbl">Tools</div>
+        <a href="{{ url_for('user.export') }}" class="nav-link">
+          <span class="ni">📥</span> Export CSV
+        </a>
+      {% endif %}
+    </nav>
+
+    <div class="sb-footer">
+      <div class="sb-user">
+        <div class="avatar" style="background:{{ session.get('avatar_color','#4f46e5') }}">
+          {{ session.get('username','?')[0].upper() }}
+        </div>
+        <div>
+          <div class="u-name">{{ session.get('username','User') }}</div>
+          <div class="u-role">{% if session.get('is_admin') %}Administrator{% else %}User{% endif %}</div>
+        </div>
+      </div>
+      <a href="{{ url_for('auth.logout') }}" class="sb-logout">
+        <span>🚪</span> Sign Out
+      </a>
+    </div>
+  </aside>
+
+  <!-- ── Main ─────────────────────────────────────────────── -->
+  <main class="main">
+    <header class="topbar">
+      <button class="icon-btn" onclick="toggleSidebar()" title="Menu" style="display:none" id="menu-btn">☰</button>
+      <div class="tb-title">
+        <h2>{% block page_title %}Dashboard{% endblock %}</h2>
+        <div class="breadcrumb">{% block breadcrumb %}{% endblock %}</div>
+      </div>
+      <div class="tb-actions">
+        <button class="icon-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle theme">🌙</button>
+      </div>
+    </header>
+
+    <div class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <ul class="flashes">
+            {% for cat,msg in messages %}
+              <li class="flash fl-{{ cat }}">
+                {{ {'success':'✅','danger':'❌','warning':'⚠️','info':'ℹ️'}.get(cat,'•') }} {{ msg }}
+              </li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  // Show menu btn on small screens
+  if(window.innerWidth <= 900) {
+    document.getElementById('menu-btn').style.display = 'flex';
+  }
+  // Close sidebar on outside click
+  document.addEventListener('click', e => {
+    const sb = document.getElementById('sidebar');
+    const mb = document.getElementById('menu-btn');
+    if(sb && mb && !sb.contains(e.target) && !mb.contains(e.target)) {
+      sb.classList.remove('open');
+    }
+  });
+</script>
+{% endblock %}

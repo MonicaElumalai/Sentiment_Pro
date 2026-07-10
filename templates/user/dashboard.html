@@ -1,0 +1,136 @@
+{% extends "app_shell.html" %}
+{% block title %}Dashboard — SentimentPro{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block breadcrumb %}Welcome back, {{ session.username }}! 👋{% endblock %}
+
+{% block content %}
+<!-- Stats -->
+<div class="stats mb-3">
+  <div class="stat-card">
+    <div class="stat-ic ic-total">📝</div>
+    <div><div class="stat-val">{{ total }}</div><div class="stat-lbl">Total Reviews</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-ic ic-pos">😊</div>
+    <div><div class="stat-val" style="color:var(--green)">{{ counts.positive }}</div><div class="stat-lbl">Positive</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-ic ic-neg">😞</div>
+    <div><div class="stat-val" style="color:var(--red)">{{ counts.negative }}</div><div class="stat-lbl">Negative</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-ic ic-neu">😐</div>
+    <div><div class="stat-val" style="color:var(--amber)">{{ counts.neutral }}</div><div class="stat-lbl">Neutral</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-ic ic-mix">🔀</div>
+    <div><div class="stat-val" style="color:var(--violet)">{{ counts.mixed }}</div><div class="stat-lbl">Mixed</div></div>
+  </div>
+</div>
+
+<div class="g2 mb-3">
+  <!-- Analyze box -->
+  <div style="grid-column:1/-1">
+    <div class="analyze-box">
+      <div class="card-head">
+        <span>🔬</span>
+        <span class="card-title">Analyze Sentiment</span>
+        <span class="card-muted">AI-powered • Aspect detection • Mixed sentiment</span>
+      </div>
+      <div class="analyze-inner">
+        <div class="tip">
+          💡 <span><strong>Tip:</strong> Try multi-aspect reviews like <em>"camera is good but battery is bad"</em> or <em>"food was amazing but service was terrible"</em>. Press Ctrl+Enter to analyze.</span>
+        </div>
+        <textarea id="review-ta" class="review-ta" placeholder="Type or paste your review here…&#10;&#10;Examples:&#10;• The camera quality is excellent but battery life is poor&#10;• Great food but terrible service and dirty tables&#10;• This product is absolutely amazing, highly recommended!" maxlength="5000"></textarea>
+        <div class="ta-meta">
+          <span id="char-count" class="char-ct">0 / 5000</span>
+          <span class="txt-xs txt-muted">Ctrl+Enter to analyze</span>
+        </div>
+        <div class="act-row">
+          <button class="btn btn-primary" id="analyze-btn" onclick="analyze()">
+            <div class="spin" id="analyze-spin"></div>
+            <span class="btn-txt">Analyze</span>
+          </button>
+          <button class="btn btn-ghost" onclick="clearAnalysis()">✕ Clear</button>
+
+          <!-- Bulk upload -->
+          <form method="POST" action="{{ url_for('user.bulk') }}" enctype="multipart/form-data" id="bulk-form" style="margin-left:auto">
+            <label class="btn btn-ghost" style="cursor:pointer" title="Upload CSV with review_text column">
+              📁 Bulk CSV
+              <input type="file" name="csv_file" accept=".csv" onchange="document.getElementById('bulk-form').submit()">
+            </label>
+          </form>
+        </div>
+
+        <!-- Result area -->
+        <div id="result-area">
+          <div class="divider"></div>
+          <div class="res-header" id="res-header">
+            <span class="res-emoji" id="res-emoji">😊</span>
+            <div style="flex:1">
+              <div id="res-label" class="res-lbl rl-positive">Positive</div>
+              <div class="conf-bar"><div class="conf-fill cf-positive" id="res-fill" style="width:0%"></div></div>
+            </div>
+            <span class="res-conf" id="res-conf-txt">—</span>
+          </div>
+          <div class="dist-pills" id="dist-pills"></div>
+          <div class="absa-grid" id="absa-grid"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent reviews -->
+<div class="card">
+  <div class="card-head">
+    <span>🕐</span>
+    <span class="card-title">Recent Analyses</span>
+    <a href="{{ url_for('user.history') }}" class="card-muted" style="color:var(--indigo-l)">View all →</a>
+  </div>
+  {% if recent %}
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead><tr>
+        <th>Review</th><th>Sentiment</th><th>Confidence</th><th>Date</th><th></th>
+      </tr></thead>
+      <tbody>
+        {% for r in recent %}
+        <tr>
+          <td style="max-width:320px">
+            <div class="trunc" title="{{ r.review_text }}">{{ r.review_text[:80] }}{% if r.review_text|length > 80 %}…{% endif %}</div>
+            {% if r.aspect_data %}
+              {% set aspects = r.aspect_data|from_json %}
+              {% if aspects|length > 1 %}
+                <div class="asp-badges">
+                  {% for a in aspects[:4] %}
+                    <span class="ab ab-{{ a.sentiment }}">{{ a.aspect[:12].upper() }}</span>
+                  {% endfor %}
+                  {% if aspects|length > 4 %}<span class="ab" style="background:var(--bdr);color:var(--txt3)">+{{ aspects|length-4 }}</span>{% endif %}
+                </div>
+              {% endif %}
+            {% endif %}
+          </td>
+          <td>
+            <span class="badge b-{{ r.overall_sentiment }}">
+              {{ r.overall_sentiment|sentiment_emoji }} {{ r.overall_sentiment|capitalize }}
+            </span>
+          </td>
+          <td><span class="fw-7">{{ r.overall_confidence }}%</span></td>
+          <td class="txt-muted txt-sm">{{ r.created_at[:16] }}</td>
+          <td>
+            <button class="btn btn-danger btn-xs" onclick="confirmDelete('{{ url_for("user.delete_review",rid=r.id) }}','Delete this review?')">🗑</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">
+    <div class="empty-icon">📝</div>
+    <p>No analyses yet. Type a review above to get started!</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

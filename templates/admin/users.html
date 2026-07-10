@@ -1,0 +1,76 @@
+{% extends "app_shell.html" %}
+{% block title %}Manage Users — SentimentPro Admin{% endblock %}
+{% block page_title %}Manage Users{% endblock %}
+{% block breadcrumb %}{{ total }} registered users{% endblock %}
+
+{% block content %}
+<div class="ph flb">
+  <div><h1>Manage Users</h1><p>View and manage all registered user accounts</p></div>
+</div>
+
+<form method="GET" class="filter-bar">
+  <input class="fc" style="flex:1" type="search" name="q" value="{{ search }}" placeholder="🔍 Search by username or email…">
+  <button class="btn btn-primary btn-sm" type="submit">Search</button>
+  <a href="{{ url_for('admin.users') }}" class="btn btn-ghost btn-sm">Reset</a>
+</form>
+
+<div class="card">
+  {% if users %}
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead><tr>
+        <th>#</th><th>User</th><th>Email</th><th>Reviews</th><th>Joined</th><th>Last Login</th><th>Action</th>
+      </tr></thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td class="txt-xs txt-muted">{{ u.id }}</td>
+          <td>
+            <div class="fla gap-1">
+              <div class="avatar" style="background:{{ u.avatar_color }}">{{ u.username[0].upper() }}</div>
+              <div>
+                <div class="fw-7">{{ u.username }}</div>
+                <div class="txt-xs txt-muted">ID {{ u.id }}</div>
+              </div>
+            </div>
+          </td>
+          <td class="txt-sm">{{ u.email }}</td>
+          <td>
+            <span class="badge b-admin">{{ u.review_count }} reviews</span>
+          </td>
+          <td class="txt-sm txt-muted">{{ u.created_at[:10] }}</td>
+          <td class="txt-sm txt-muted">{{ (u.last_login or 'Never')[:10] }}</td>
+          <td>
+            <div class="fla gap-1">
+              <a href="{{ url_for('admin.reviews') }}?uid={{ u.id }}" class="btn btn-ghost btn-xs">📋 Reviews</a>
+              <button class="btn btn-danger btn-xs"
+                onclick="confirmDelete('{{ url_for("admin.delete_user",uid=u.id) }}','Delete user &quot;{{ u.username }}&quot; and ALL their reviews? This cannot be undone.')">🗑 Delete</button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if total_pages > 1 %}
+  <div style="padding:.9rem 1.4rem;border-top:1px solid var(--bdr);display:flex;align-items:center;gap:.5rem">
+    <span class="txt-sm txt-muted">Page {{ page }} of {{ total_pages }}</span>
+    <div class="pager" style="margin-left:auto">
+      {% if page > 1 %}<a href="?page={{ page-1 }}&q={{ search }}" class="pg">‹</a>{% endif %}
+      {% for p in range([1,page-2]|max,[total_pages+1,page+3]|min) %}
+        <a href="?page={{ p }}&q={{ search }}" class="pg {% if p==page %}active{% endif %}">{{ p }}</a>
+      {% endfor %}
+      {% if page < total_pages %}<a href="?page={{ page+1 }}&q={{ search }}" class="pg">›</a>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="empty">
+    <div class="empty-icon">👥</div>
+    <p>{% if search %}No users matched "{{ search }}".{% else %}No users registered yet.{% endif %}</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

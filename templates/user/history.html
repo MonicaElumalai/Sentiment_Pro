@@ -1,0 +1,116 @@
+{% extends "app_shell.html" %}
+{% block title %}History — SentimentPro{% endblock %}
+{% block page_title %}Analysis History{% endblock %}
+{% block breadcrumb %}{{ total }} total reviews{% endblock %}
+
+{% block content %}
+<div class="ph">
+  <h1>Analysis History</h1>
+  <p>All your sentiment analyses with aspect-level breakdowns</p>
+</div>
+
+<!-- Filter bar -->
+<form method="GET" class="filter-bar">
+  <input class="fc" style="flex:1;min-width:200px" type="search" name="q" value="{{ search }}" placeholder="🔍  Search reviews…">
+  <select class="fc" name="f">
+    <option value="">All Sentiments</option>
+    <option value="positive" {% if filt=='positive' %}selected{% endif %}>😊 Positive</option>
+    <option value="negative" {% if filt=='negative' %}selected{% endif %}>😞 Negative</option>
+    <option value="neutral"  {% if filt=='neutral'  %}selected{% endif %}>😐 Neutral</option>
+    <option value="mixed"    {% if filt=='mixed'    %}selected{% endif %}>🔀 Mixed</option>
+  </select>
+  <select class="fc" name="s">
+    <option value="newest" {% if sort=='newest' %}selected{% endif %}>Newest First</option>
+    <option value="oldest" {% if sort=='oldest' %}selected{% endif %}>Oldest First</option>
+  </select>
+  <button class="btn btn-primary btn-sm" type="submit">Apply</button>
+  <a href="{{ url_for('user.history') }}" class="btn btn-ghost btn-sm">Reset</a>
+  <a href="{{ url_for('user.export') }}" class="btn btn-ghost btn-sm" style="margin-left:auto">📥 Export CSV</a>
+</form>
+
+<div class="card">
+  {% if reviews %}
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead><tr>
+        <th>#</th>
+        <th>Review Text</th>
+        <th>Sentiment</th>
+        <th>Confidence</th>
+        <th>Source</th>
+        <th>Date</th>
+        <th>Action</th>
+      </tr></thead>
+      <tbody>
+        {% for r in reviews %}
+        <tr>
+          <td class="txt-muted txt-xs">{{ r.id }}</td>
+          <td style="max-width:340px">
+            <div class="trunc" title="{{ r.review_text }}">
+              {{ r.review_text[:90] }}{% if r.review_text|length > 90 %}…{% endif %}
+            </div>
+            {% if r.aspect_data %}
+              {% set aspects = r.aspect_data|from_json %}
+              {% if aspects %}
+                <div class="asp-badges">
+                  {% for a in aspects[:5] %}
+                    <span class="ab ab-{{ a.sentiment }}" title="{{ a.clause }}">
+                      {{ a.aspect[:14].upper() }}
+                    </span>
+                  {% endfor %}
+                  {% if aspects|length > 5 %}
+                    <span class="ab" style="background:var(--bdr);color:var(--txt3)">+{{ aspects|length-5 }}</span>
+                  {% endif %}
+                </div>
+              {% endif %}
+            {% endif %}
+          </td>
+          <td>
+            <span class="badge b-{{ r.overall_sentiment }}">
+              {{ r.overall_sentiment|sentiment_emoji }} {{ r.overall_sentiment|capitalize }}
+            </span>
+            {% if r.is_mixed %}<span class="badge b-mix" style="margin-left:.3rem">Mixed</span>{% endif %}
+          </td>
+          <td><span class="fw-7">{{ r.overall_confidence }}%</span></td>
+          <td>
+            <span class="badge" style="background:var(--indigo-bg);color:var(--indigo);border:1px solid var(--indigo-br)">
+              {{ '📁' if r.source=='bulk' else '✍️' }} {{ r.source|capitalize }}
+            </span>
+          </td>
+          <td class="txt-muted txt-sm">{{ r.created_at[:16] }}</td>
+          <td>
+            <button class="btn btn-danger btn-xs"
+              onclick="confirmDelete('{{ url_for("user.delete_review",rid=r.id) }}','Delete this review?')">🗑 Delete</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if total_pages > 1 %}
+  <div style="padding:.9rem 1.4rem;border-top:1px solid var(--bdr);display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+    <span class="txt-sm txt-muted">Page {{ page }} of {{ total_pages }}</span>
+    <div class="pager" style="margin-left:auto">
+      {% if page > 1 %}
+        <a href="?page={{ page-1 }}&q={{ search }}&f={{ filt }}&s={{ sort }}" class="pg">‹</a>
+      {% endif %}
+      {% for p in range([1,page-2]|max, [total_pages+1,page+3]|min) %}
+        <a href="?page={{ p }}&q={{ search }}&f={{ filt }}&s={{ sort }}" class="pg {% if p==page %}active{% endif %}">{{ p }}</a>
+      {% endfor %}
+      {% if page < total_pages %}
+        <a href="?page={{ page+1 }}&q={{ search }}&f={{ filt }}&s={{ sort }}" class="pg">›</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="empty">
+    <div class="empty-icon">🔍</div>
+    <p>{% if search or filt %}No reviews matched your filters.{% else %}No analyses yet. Go to the Dashboard to start!{% endif %}</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

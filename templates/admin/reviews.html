@@ -1,0 +1,72 @@
+{% extends "app_shell.html" %}
+{% block title %}All Reviews — SentimentPro Admin{% endblock %}
+{% block page_title %}All Reviews{% endblock %}
+{% block breadcrumb %}{{ total }} total reviews{% endblock %}
+
+{% block content %}
+<div class="ph">
+  <h1>All Reviews</h1>
+  <p>System-wide review history across all users</p>
+</div>
+<form method="GET" class="filter-bar">
+  <input class="fc" style="flex:1;min-width:180px" type="search" name="q" value="{{ search }}" placeholder="Search review text…">
+  <select class="fc" name="uid">
+    <option value="">All Users</option>
+    {% for u in all_users %}
+      <option value="{{ u.id }}" {% if uid|string==u.id|string %}selected{% endif %}>{{ u.username }}</option>
+    {% endfor %}
+  </select>
+  <select class="fc" name="f">
+    <option value="">All Sentiments</option>
+    <option value="positive" {% if filt=='positive' %}selected{% endif %}>😊 Positive</option>
+    <option value="negative" {% if filt=='negative' %}selected{% endif %}>😞 Negative</option>
+    <option value="neutral"  {% if filt=='neutral'  %}selected{% endif %}>😐 Neutral</option>
+    <option value="mixed"    {% if filt=='mixed'    %}selected{% endif %}>🔀 Mixed</option>
+  </select>
+  <button class="btn btn-primary btn-sm" type="submit">Filter</button>
+  <a href="{{ url_for('admin.reviews') }}" class="btn btn-ghost btn-sm">Reset</a>
+</form>
+<div class="card">
+  {% if reviews %}
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead><tr><th>#</th><th>User</th><th>Review</th><th>Sentiment</th><th>Conf.</th><th>Source</th><th>Date</th><th>Del.</th></tr></thead>
+      <tbody>
+        {% for r in reviews %}
+        <tr>
+          <td class="txt-xs txt-muted">{{ r.id }}</td>
+          <td>
+            <div class="fla gap-1">
+              <div class="avatar" style="background:{{ r.avatar_color }};width:26px;height:26px;font-size:.68rem">{{ r.username[0].upper() }}</div>
+              <span class="txt-sm fw-7">{{ r.username }}</span>
+            </div>
+          </td>
+          <td style="max-width:260px">
+            <div class="trunc txt-sm" title="{{ r.review_text }}">{{ r.review_text[:70] }}{% if r.review_text|length>70 %}…{% endif %}</div>
+            {% if r.aspect_data %}{% set asp=r.aspect_data|from_json %}{% if asp|length>1 %}<div class="asp-badges">{% for a in asp[:3] %}<span class="ab ab-{{ a.sentiment }}">{{ a.aspect[:12].upper() }}</span>{% endfor %}</div>{% endif %}{% endif %}
+          </td>
+          <td><span class="badge b-{{ r.overall_sentiment }}">{{ r.overall_sentiment|sentiment_emoji }} {{ r.overall_sentiment|capitalize }}</span></td>
+          <td class="fw-7">{{ r.overall_confidence }}%</td>
+          <td class="txt-xs txt-muted">{{ r.source|capitalize }}</td>
+          <td class="txt-sm txt-muted">{{ r.created_at[:16] }}</td>
+          <td><button class="btn btn-danger btn-xs" onclick="confirmDelete('{{ url_for("admin.delete_review",rid=r.id) }}','Delete this review?')">🗑</button></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if total_pages > 1 %}
+  <div style="padding:.9rem 1.4rem;border-top:1px solid var(--bdr);display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+    <span class="txt-sm txt-muted">Page {{ page }} of {{ total_pages }} &middot; {{ total }} reviews</span>
+    <div class="pager" style="margin-left:auto">
+      {% if page>1 %}<a href="?page={{ page-1 }}&q={{ search }}&uid={{ uid }}&f={{ filt }}" class="pg">&#8249;</a>{% endif %}
+      {% for p in range([1,page-2]|max,[total_pages+1,page+3]|min) %}<a href="?page={{ p }}&q={{ search }}&uid={{ uid }}&f={{ filt }}" class="pg {% if p==page %}active{% endif %}">{{ p }}</a>{% endfor %}
+      {% if page<total_pages %}<a href="?page={{ page+1 }}&q={{ search }}&uid={{ uid }}&f={{ filt }}" class="pg">&#8250;</a>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+  {% else %}
+  <div class="empty"><div class="empty-icon">📋</div><p>No reviews found.</p></div>
+  {% endif %}
+</div>
+{% endblock %}

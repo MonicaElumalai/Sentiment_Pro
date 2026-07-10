@@ -1,0 +1,115 @@
+{% extends "app_shell.html" %}
+{% block title %}Admin Dashboard — SentimentPro{% endblock %}
+{% block page_title %}Admin Dashboard{% endblock %}
+{% block breadcrumb %}System overview{% endblock %}
+
+{% block content %}
+<!-- Stats -->
+<div class="stats mb-3">
+  <div class="stat-card">
+    <div class="stat-ic ic-users">👥</div>
+    <div><div class="stat-val">{{ total_users }}</div><div class="stat-lbl">Total Users</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-ic ic-total">📋</div>
+    <div><div class="stat-val">{{ total_reviews }}</div><div class="stat-lbl">Total Reviews</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-ic ic-pos">😊</div>
+    <div><div class="stat-val" style="color:var(--green)">{{ counts.positive }}</div><div class="stat-lbl">Positive</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-ic ic-neg">😞</div>
+    <div><div class="stat-val" style="color:var(--red)">{{ counts.negative }}</div><div class="stat-lbl">Negative</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-ic ic-neu">📅</div>
+    <div><div class="stat-val" style="color:var(--indigo)">{{ today_count }}</div><div class="stat-lbl">Today</div></div>
+  </div>
+</div>
+
+<!-- Charts -->
+<div class="charts-grid mb-2">
+  <div class="chart-box">
+    <div class="chart-title">🍩 Overall Sentiment Distribution</div>
+    <div style="position:relative;height:230px"><canvas id="pieChart"></canvas></div>
+  </div>
+  <div class="chart-box">
+    <div class="chart-title">📈 14-Day Activity Trend</div>
+    <div style="position:relative;height:230px"><canvas id="lineChart"></canvas></div>
+  </div>
+</div>
+
+<div class="g2 mb-2">
+  <!-- Recent users -->
+  <div class="card">
+    <div class="card-head">
+      <span>👥</span><span class="card-title">Recent Users</span>
+      <a href="{{ url_for('admin.users') }}" class="card-muted" style="color:var(--indigo-l)">All users →</a>
+    </div>
+    {% if recent_users %}
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>User</th><th>Email</th><th>Joined</th></tr></thead>
+        <tbody>
+          {% for u in recent_users %}
+          <tr>
+            <td>
+              <div class="fla gap-1">
+                <div class="avatar" style="background:{{ u.avatar_color }};width:28px;height:28px;font-size:.72rem">{{ u.username[0].upper() }}</div>
+                <span class="fw-7">{{ u.username }}</span>
+              </div>
+            </td>
+            <td class="txt-sm txt-muted">{{ u.email }}</td>
+            <td class="txt-sm txt-muted">{{ u.created_at[:10] }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty"><div class="empty-icon">👤</div><p>No users yet.</p></div>
+    {% endif %}
+  </div>
+
+  <!-- Recent reviews -->
+  <div class="card">
+    <div class="card-head">
+      <span>📋</span><span class="card-title">Recent Reviews</span>
+      <a href="{{ url_for('admin.reviews') }}" class="card-muted" style="color:var(--indigo-l)">All reviews →</a>
+    </div>
+    {% if recent_reviews %}
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>User</th><th>Review</th><th>Sentiment</th></tr></thead>
+        <tbody>
+          {% for r in recent_reviews %}
+          <tr>
+            <td>
+              <div class="fla gap-1">
+                <div class="avatar" style="background:{{ r.avatar_color }};width:24px;height:24px;font-size:.65rem">{{ r.username[0].upper() }}</div>
+                <span class="txt-sm">{{ r.username }}</span>
+              </div>
+            </td>
+            <td style="max-width:180px"><div class="trunc txt-sm" title="{{ r.review_text }}">{{ r.review_text[:50] }}…</div></td>
+            <td><span class="badge b-{{ r.overall_sentiment }}">{{ r.overall_sentiment|sentiment_emoji }} {{ r.overall_sentiment|capitalize }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty"><div class="empty-icon">📋</div><p>No reviews yet.</p></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const counts = {{ counts|tojson }};
+const trend  = {{ trend|safe }};
+makePieChart('pieChart',['Positive','Negative','Neutral','Mixed'],[counts.positive,counts.negative,counts.neutral,counts.mixed]);
+makeLineChart('lineChart',trend.map(t=>t.date.slice(5)),trend.map(t=>t.count));
+</script>
+{% endblock %}
